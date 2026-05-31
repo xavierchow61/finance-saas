@@ -25,3 +25,19 @@ body {
   animation-duration: 0.25s;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* 表單共用 input style */
+.input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  outline: none;
+  font-size: 0.875rem;
+  background: white;
+  color: #1a1a2e;
+}
+.input:focus {
+  border-color: #00a6e0;
+  box-shadow: 0 0 0 2px rgba(0, 166, 224, 0.2);
+}
