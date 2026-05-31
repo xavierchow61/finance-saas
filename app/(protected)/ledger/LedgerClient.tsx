@@ -387,3 +387,6 @@ function NewEntryTab({
       >
         {pending ? "處理中..." : "💾 寫入分錄"}
       </button>
+    </div>
+  );
+}
