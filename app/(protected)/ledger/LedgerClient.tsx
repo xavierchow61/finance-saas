@@ -8,6 +8,7 @@ import type {
 } from "@/lib/types";
 import { CURRENCIES } from "@/lib/constants";
 import { groupAccountsWithParentTotals, fmtMoney } from "@/lib/finance";
+import CascadePicker from "@/components/CascadePicker";
 import { createEntry, deleteEntry } from "./actions";
 
 type Tab = "entries" | "overview" | "new";
