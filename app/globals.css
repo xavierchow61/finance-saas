@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  /* 即時上色避免切頁白屏 */
+  background: #E0F2FE;
+  color: #1A1A2E;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+
+body {
+  background: linear-gradient(135deg, #E0F2FE 0%, #7DD3FC 50%, #00A6E0 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* View Transitions API（瀏覽器支援時自動 cross-fade）*/
+@view-transition {
+  navigation: auto;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.25s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
