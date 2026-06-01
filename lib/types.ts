@@ -53,6 +53,51 @@ export interface AccountWithBalance extends Account {
   balance: number;
 }
 
+// ============================================================
+// 單據（Invoice）
+// ============================================================
+export type ExpenseType = "私人" | "公司報銷" | "可扣稅";
+
+export interface InvoiceItem {
+  name: string;
+  quantity?: number | string;
+  price?: number | string;
+}
+
+export interface Invoice {
+  id: number;
+  user_id: string;
+  purchase_date: string | null;
+  store_name: string | null;
+  category: string | null;
+  expense_type: ExpenseType;
+  reimbursed: boolean;
+  total_amount: number | null;
+  currency: string;
+  payment_method: string | null;
+  items_json: InvoiceItem[] | null;
+  tax: number | null;
+  receipt_number: string | null;
+  notes: string | null;
+  source_file: string | null;
+  image_path: string | null;
+  extracted_at: string | null;
+  created_at: string;
+}
+
+// Gemini 提取結果（未存 DB 之前）
+export interface ExtractedInvoice {
+  purchase_date: string | null;
+  store_name: string | null;
+  category: string | null;
+  total_amount: number | null;
+  currency: string;
+  payment_method: string | null;
+  tax: number | null;
+  receipt_number: string | null;
+  items: InvoiceItem[];
+}
+
 // 樹狀分組結果
 export interface GroupedAccount {
   account: AccountWithBalance;

@@ -91,10 +91,54 @@ export const DEFAULT_ACCOUNTS: SeedAccount[] = [
 ];
 
 // ============================================================
+// 消費類別（AI 提取會 reference）
+// ============================================================
+export const CATEGORIES = [
+  "餐飲",
+  "超市雜貨",
+  "交通",
+  "服飾",
+  "電子產品",
+  "美容護理",
+  "醫療藥物",
+  "娛樂",
+  "家居用品",
+  "教育學習",
+  "住宿旅遊",
+  "通訊網絡",
+  "水電煤",
+  "保險",
+  "其他",
+];
+
+// 類別中文 → 預設支出帳戶 code（自動入賬用）
+export const CATEGORY_TO_ACCOUNT: Record<string, string> = {
+  餐飲: "FOOD",
+  超市雜貨: "GROCERY",
+  交通: "TRANSPORT",
+  服飾: "CLOTHING",
+  電子產品: "ELECTRONICS",
+  美容護理: "BEAUTY",
+  醫療藥物: "MEDICAL",
+  娛樂: "ENTERTAINMENT",
+  家居用品: "HOUSEHOLD",
+  教育學習: "EDUCATION",
+  住宿旅遊: "TRAVEL",
+  通訊網絡: "TELECOM",
+  水電煤: "UTILITIES",
+  保險: "INSURANCE",
+  其他: "OTHER_EXPENSE",
+};
+
+// 支出類型
+export const EXPENSE_TYPES = ["私人", "公司報銷", "可扣稅"] as const;
+
+// ============================================================
 // 導航 menu
 // ============================================================
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "儀表板", icon: "🏠" },
   { href: "/accounts", label: "帳戶管理", icon: "🏦" },
   { href: "/ledger", label: "個人記賬", icon: "💰" },
+  { href: "/invoices", label: "單據處理", icon: "📋" },
 ] as const;
