@@ -141,4 +141,7 @@ export const NAV_ITEMS = [
   { href: "/accounts", label: "帳戶管理", icon: "🏦" },
   { href: "/ledger", label: "個人記賬", icon: "💰" },
   { href: "/invoices", label: "單據處理", icon: "📋" },
+  { href: "/budget", label: "預算追蹤", icon: "🎯" },
+  { href: "/reports", label: "財務報表", icon: "📈" },
+  { href: "/reimburse", label: "報銷追蹤", icon: "🏢" },
 ] as const;

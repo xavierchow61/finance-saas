@@ -58,6 +58,10 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <QuickLink href="/accounts" icon="🏦" label="帳戶管理" />
             <QuickLink href="/ledger" icon="💰" label="個人記賬" />
+            <QuickLink href="/invoices" icon="📋" label="單據處理" />
+            <QuickLink href="/budget" icon="🎯" label="預算追蹤" />
+            <QuickLink href="/reports" icon="📈" label="財務報表" />
+            <QuickLink href="/reimburse" icon="🏢" label="報銷追蹤" />
           </div>
         </>
       )}
