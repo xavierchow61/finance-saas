@@ -138,6 +138,55 @@ export async function saveInvoice(input: {
 }
 
 // ============================================================
+// 更新單據（只改 invoice 欄位，唔自動重建分錄）
+// ============================================================
+export async function updateInvoice(input: {
+  id: number;
+  purchase_date: string | null;
+  store_name: string | null;
+  category: string | null;
+  expense_type: ExpenseType;
+  total_amount: number | null;
+  currency: string;
+  payment_method: string | null;
+  tax: number | null;
+  receipt_number: string | null;
+  notes: string | null;
+}): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "未登入" };
+
+  if (!input.total_amount || input.total_amount <= 0) {
+    return { ok: false, error: "金額必須大於零" };
+  }
+
+  const { error } = await supabase
+    .from("invoices")
+    .update({
+      purchase_date: input.purchase_date,
+      store_name: input.store_name,
+      category: input.category,
+      expense_type: input.expense_type,
+      total_amount: input.total_amount,
+      currency: input.currency || "HKD",
+      payment_method: input.payment_method,
+      tax: input.tax,
+      receipt_number: input.receipt_number,
+      notes: input.notes,
+    })
+    .eq("id", input.id);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/invoices");
+  revalidatePath("/reimburse");
+  return { ok: true, invoiceId: input.id };
+}
+
+// ============================================================
 // 刪除單據（連帶刪相關分錄）
 // ============================================================
 export async function deleteInvoice(invoiceId: number): Promise<ActionResult> {

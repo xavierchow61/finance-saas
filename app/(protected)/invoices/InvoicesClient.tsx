@@ -9,7 +9,12 @@ import type {
 } from "@/lib/types";
 import { CATEGORIES, EXPENSE_TYPES, CURRENCIES } from "@/lib/constants";
 import { fmtMoney } from "@/lib/finance";
-import { saveInvoice, deleteInvoice, toggleReimbursed } from "./actions";
+import {
+  saveInvoice,
+  updateInvoice,
+  deleteInvoice,
+  toggleReimbursed,
+} from "./actions";
 
 interface Props {
   invoices: Invoice[];
@@ -44,11 +49,43 @@ export default function InvoicesClient({
   const [info, setInfo] = useState<string | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // 編輯模式：記住正在編輯嘅 invoice id（null = 新增模式）
+  const [editId, setEditId] = useState<number | null>(null);
 
   const defaultPayAcc =
     paymentAccounts.find((a) => a.code === "CASH")?.code ??
     paymentAccounts[0]?.code ??
     "";
+
+  // ---- 進入編輯模式 ----
+  function startEdit(inv: Invoice) {
+    setEditId(inv.id);
+    setPreviewUrl(null);
+    setError(null);
+    setInfo(null);
+    setForm({
+      purchase_date:
+        inv.purchase_date ?? new Date().toISOString().slice(0, 10),
+      store_name: inv.store_name ?? "",
+      category: inv.category ?? "其他",
+      expense_type: inv.expense_type,
+      total_amount: inv.total_amount != null ? String(inv.total_amount) : "",
+      currency: inv.currency ?? "HKD",
+      payment_method: inv.payment_method ?? "",
+      tax: inv.tax != null ? String(inv.tax) : "",
+      receipt_number: inv.receipt_number ?? "",
+      notes: inv.notes ?? "",
+      items: (inv.items_json ?? []).map((it) => ({
+        name: it.name,
+        quantity: it.quantity != null ? String(it.quantity) : "",
+        price: it.price != null ? String(it.price) : "",
+      })),
+      autoPost: false, // 編輯時預設唔重新入賬
+      paymentAccount: defaultPayAcc,
+    });
+    // scroll 返上去 form
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   // ---- 上傳 + AI 提取 ----
   async function handleFile(file: File) {
@@ -98,36 +135,51 @@ export default function InvoicesClient({
     setForm((f) => (f ? { ...f, [key]: value } : f));
   }
 
-  // ---- 儲存 ----
+  // ---- 儲存（新增 or 編輯）----
   async function handleSave() {
     if (!form) return;
     setSaving(true);
     setError(null);
     setInfo(null);
-    const res = await saveInvoice({
-      purchase_date: form.purchase_date || null,
-      store_name: form.store_name || null,
-      category: form.category || null,
-      expense_type: form.expense_type,
-      total_amount: form.total_amount ? Number(form.total_amount) : null,
-      currency: form.currency,
-      payment_method: form.payment_method || null,
-      tax: form.tax ? Number(form.tax) : null,
-      receipt_number: form.receipt_number || null,
-      items: form.items.filter((i) => i.name.trim()),
-      notes: form.notes || null,
-      autoPost: form.autoPost,
-      paymentAccount: form.autoPost ? form.paymentAccount : null,
-    });
+
+    const res = editId
+      ? await updateInvoice({
+          id: editId,
+          purchase_date: form.purchase_date || null,
+          store_name: form.store_name || null,
+          category: form.category || null,
+          expense_type: form.expense_type,
+          total_amount: form.total_amount ? Number(form.total_amount) : null,
+          currency: form.currency,
+          payment_method: form.payment_method || null,
+          tax: form.tax ? Number(form.tax) : null,
+          receipt_number: form.receipt_number || null,
+          notes: form.notes || null,
+        })
+      : await saveInvoice({
+          purchase_date: form.purchase_date || null,
+          store_name: form.store_name || null,
+          category: form.category || null,
+          expense_type: form.expense_type,
+          total_amount: form.total_amount ? Number(form.total_amount) : null,
+          currency: form.currency,
+          payment_method: form.payment_method || null,
+          tax: form.tax ? Number(form.tax) : null,
+          receipt_number: form.receipt_number || null,
+          items: form.items.filter((i) => i.name.trim()),
+          notes: form.notes || null,
+          autoPost: form.autoPost,
+          paymentAccount: form.autoPost ? form.paymentAccount : null,
+        });
+
     setSaving(false);
     if (!res.ok) {
       setError(res.error ?? "儲存失敗");
       return;
     }
-    // 部分成功（入賬 skip）會有 error message 但 ok=true
     if (res.error) setInfo(res.error);
-    // 重設 form + reload
     setForm(null);
+    setEditId(null);
     setPreviewUrl(null);
     if (fileRef.current) fileRef.current.value = "";
     window.location.reload();
@@ -199,7 +251,7 @@ export default function InvoicesClient({
       {form && (
         <div className="bg-white/95 backdrop-blur rounded-2xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold text-slate-700 mb-4">
-            ✏️ 核對提取結果
+            {editId ? "✏️ 編輯單據" : "✏️ 核對提取結果"}
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* 圖片預覽 */}
@@ -298,8 +350,11 @@ export default function InvoicesClient({
             </div>
           </div>
 
-          {/* 入賬選項 */}
-          <div className="mt-5 pt-5 border-t border-slate-200">
+          {/* 入賬選項（只喺新增模式顯示；編輯唔重新入賬）*/}
+          <div
+            className="mt-5 pt-5 border-t border-slate-200"
+            style={{ display: editId ? "none" : "block" }}
+          >
             <label className="flex items-center gap-2 mb-3">
               <input
                 type="checkbox"
@@ -348,6 +403,7 @@ export default function InvoicesClient({
             <button
               onClick={() => {
                 setForm(null);
+                setEditId(null);
                 setPreviewUrl(null);
               }}
               className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-6 py-2.5 rounded-lg transition"
@@ -421,7 +477,13 @@ export default function InvoicesClient({
                         "—"
                       )}
                     </td>
-                    <td className="py-2 text-right">
+                    <td className="py-2 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => startEdit(inv)}
+                        className="text-doraemon-600 hover:text-doraemon-700 text-xs mr-3"
+                      >
+                        ✏️ 編輯
+                      </button>
                       <button
                         onClick={() => handleDelete(inv.id)}
                         className="text-red-500 hover:text-red-700 text-xs"

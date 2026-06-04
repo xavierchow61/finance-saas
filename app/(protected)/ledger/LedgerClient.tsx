@@ -60,7 +60,11 @@ export default function LedgerClient({
       </div>
 
       {tab === "entries" && (
-        <EntriesTab entries={entries} onToast={showToast} />
+        <EntriesTab
+          entries={entries}
+          accounts={accounts}
+          onToast={showToast}
+        />
       )}
       {tab === "overview" && <OverviewTab accounts={accounts} />}
       {tab === "new" && (
@@ -81,14 +85,22 @@ export default function LedgerClient({
 // ============================================================
 function EntriesTab({
   entries,
+  accounts,
   onToast,
 }: {
   entries: JournalEntryWithLines[];
+  accounts: AccountWithBalance[];
   onToast: (m: string) => void;
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // code → 中文名（連 icon）對照
+  const nameByCode = new Map(
+    accounts.map((a) => [a.code, `${a.icon ?? ""} ${a.name}`.trim()]),
+  );
+  const acctName = (code: string) => nameByCode.get(code) ?? code;
 
   if (entries.length === 0) {
     return (
@@ -104,10 +116,10 @@ function EntriesTab({
     return e.journal_lines
       .map((l) =>
         l.debit > 0
-          ? `${l.account_code}:Dr ${l.debit}`
-          : `${l.account_code}:Cr ${l.credit}`,
+          ? `${acctName(l.account_code)}：借 ${l.debit}`
+          : `${acctName(l.account_code)}：貸 ${l.credit}`,
       )
-      .join(" | ");
+      .join("　|　");
   }
   function amountOf(e: JournalEntryWithLines) {
     return Math.max(...e.journal_lines.map((l) => l.debit), 0);
@@ -193,8 +205,11 @@ function EntriesTab({
             <tbody>
               {sel.journal_lines.map((l) => (
                 <tr key={l.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2 font-mono text-xs">
-                    {l.account_code}
+                  <td className="px-4 py-2">
+                    {acctName(l.account_code)}
+                    <span className="text-xs text-slate-400 ml-1">
+                      ({l.account_code})
+                    </span>
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums">
                     {l.debit > 0 ? fmtMoney(l.debit) : ""}
