@@ -62,6 +62,9 @@ export default async function DashboardPage() {
             <QuickLink href="/budget" icon="🎯" label="預算追蹤" />
             <QuickLink href="/reports" icon="📈" label="財務報表" />
             <QuickLink href="/reimburse" icon="🏢" label="報銷追蹤" />
+            <QuickLink href="/cards" icon="💳" label="信用卡" />
+            <QuickLink href="/loans" icon="💸" label="貸款管理" />
+            <QuickLink href="/settings" icon="⚙️" label="設定" />
           </div>
         </>
       )}

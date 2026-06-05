@@ -133,6 +133,21 @@ export const CATEGORY_TO_ACCOUNT: Record<string, string> = {
 // 支出類型
 export const EXPENSE_TYPES = ["私人", "公司報銷", "可扣稅"] as const;
 
+// 貸款類型
+export const LOAN_TYPES = [
+  { value: "mortgage", label: "🏠 按揭" },
+  { value: "auto", label: "🚗 汽車貸款" },
+  { value: "personal", label: "💵 私人貸款" },
+  { value: "instalment", label: "💳 分期付款" },
+] as const;
+
+// 信用卡回贈類型
+export const REWARDS_TYPES = [
+  { value: "cash", label: "現金回贈" },
+  { value: "miles", label: "里數" },
+  { value: "points", label: "積分" },
+] as const;
+
 // ============================================================
 // 導航 menu
 // ============================================================
@@ -144,4 +159,7 @@ export const NAV_ITEMS = [
   { href: "/budget", label: "預算追蹤", icon: "🎯" },
   { href: "/reports", label: "財務報表", icon: "📈" },
   { href: "/reimburse", label: "報銷追蹤", icon: "🏢" },
+  { href: "/cards", label: "信用卡", icon: "💳" },
+  { href: "/loans", label: "貸款管理", icon: "💸" },
+  { href: "/settings", label: "設定", icon: "⚙️" },
 ] as const;

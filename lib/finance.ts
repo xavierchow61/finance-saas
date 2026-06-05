@@ -121,6 +121,73 @@ export function fmtMoney(n: number, currency = "HKD"): string {
 }
 
 // ============================================================
+// 貸款 EMI 試算（等額本息）
+// ============================================================
+// M = P × r × (1+r)^n / ((1+r)^n − 1)
+//   P = 本金, r = 月利率（年利率/12）, n = 期數
+// ============================================================
+export function calcEmi(
+  principal: number,
+  annualRate: number, // 0.045 = 4.5%
+  termMonths: number,
+): number {
+  if (principal <= 0 || termMonths <= 0) return 0;
+  const r = annualRate / 12;
+  if (r === 0) return principal / termMonths;
+  const pow = Math.pow(1 + r, termMonths);
+  return (principal * r * pow) / (pow - 1);
+}
+
+// 計算已過期數（由 start_date 到今日）+ 剩餘本金（近似）
+export function loanProgress(
+  principal: number,
+  annualRate: number,
+  termMonths: number,
+  startDate: string,
+): { paidMonths: number; remainingBalance: number; totalInterest: number } {
+  const emi = calcEmi(principal, annualRate, termMonths);
+  const start = new Date(startDate);
+  const now = new Date();
+  let paidMonths =
+    (now.getFullYear() - start.getFullYear()) * 12 +
+    (now.getMonth() - start.getMonth());
+  paidMonths = Math.max(0, Math.min(paidMonths, termMonths));
+
+  // 攤還：逐月計剩餘本金
+  const r = annualRate / 12;
+  let balance = principal;
+  for (let i = 0; i < paidMonths; i++) {
+    const interest = balance * r;
+    const principalPart = emi - interest;
+    balance -= principalPart;
+  }
+  return {
+    paidMonths,
+    remainingBalance: Math.max(0, balance),
+    totalInterest: emi * termMonths - principal,
+  };
+}
+
+// 計算下次還款日（due_day → 今日之後最近一個）
+export function nextDueDate(dueDay: number | null): string | null {
+  if (!dueDay) return null;
+  const now = new Date();
+  let y = now.getFullYear();
+  let m = now.getMonth(); // 0-based
+  // 如果今個月嘅 due_day 已過 → 跳下個月
+  if (now.getDate() > dueDay) {
+    m += 1;
+    if (m > 11) {
+      m = 0;
+      y += 1;
+    }
+  }
+  const lastDay = new Date(y, m + 1, 0).getDate();
+  const day = Math.min(dueDay, lastDay);
+  return `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+// ============================================================
 // 期間日期計算（YYYY-MM → start / end）
 // ============================================================
 export function monthRange(period: string): { start: string; end: string } {

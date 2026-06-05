@@ -98,6 +98,76 @@ export interface ExtractedInvoice {
   items: InvoiceItem[];
 }
 
+// ============================================================
+// 信用卡 / 貸款 / 匯率 / 付款對應 / 期間 / 專案
+// ============================================================
+export interface CreditCard {
+  user_id: string;
+  account_code: string;
+  card_last4: string | null;
+  credit_limit: number | null;
+  statement_day: number | null;
+  due_day: number | null;
+  interest_rate: number | null;
+  annual_fee: number | null;
+  rewards: string | null;
+  rewards_rate: number | null;
+  rewards_type: string | null;
+  notes: string | null;
+}
+
+export interface Loan {
+  id: number;
+  user_id: string;
+  name: string;
+  loan_type: string;
+  bank: string | null;
+  principal: number;
+  interest_rate: number;
+  term_months: number;
+  monthly_payment: number | null;
+  start_date: string;
+  due_day: number | null;
+  account_code: string | null;
+  status: string;
+  notes: string | null;
+}
+
+export interface FxRate {
+  id: number;
+  user_id: string;
+  currency: string;
+  rate_to_hkd: number;
+  as_of_date: string;
+  notes: string | null;
+}
+
+export interface PaymentAlias {
+  user_id: string;
+  keyword: string;
+  account_code: string;
+  notes: string | null;
+}
+
+export interface ClosedPeriod {
+  user_id: string;
+  period: string;
+  closed_at: string;
+  notes: string | null;
+}
+
+export interface Project {
+  id: number;
+  user_id: string;
+  name: string;
+  description: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  total_budget: number | null;
+  status: string;
+  icon: string | null;
+}
+
 // 樹狀分組結果
 export interface GroupedAccount {
   account: AccountWithBalance;
