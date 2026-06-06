@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types";
 import { CATEGORIES, EXPENSE_TYPES, CURRENCIES } from "@/lib/constants";
 import { fmtMoney } from "@/lib/finance";
+import { createClient } from "@/lib/supabase/client";
 import {
   saveInvoice,
   updateInvoice,
@@ -49,6 +50,8 @@ export default function InvoicesClient({
   const [info, setInfo] = useState<string | null>(null);
   const [form, setForm] = useState<FormState | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // 待上傳嘅原始檔（save 時先 upload 去 storage）
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   // 編輯模式：記住正在編輯嘅 invoice id（null = 新增模式）
   const [editId, setEditId] = useState<number | null>(null);
 
@@ -93,6 +96,7 @@ export default function InvoicesClient({
     setInfo(null);
     setExtracting(true);
     setPreviewUrl(URL.createObjectURL(file));
+    setPendingFile(file); // 留待 save 時 upload 去 storage
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -135,12 +139,43 @@ export default function InvoicesClient({
     setForm((f) => (f ? { ...f, [key]: value } : f));
   }
 
+  // ---- 上傳單據圖去 Supabase Storage，回傳 path（失敗回 null）----
+  async function uploadReceipt(file: File): Promise<string | null> {
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return null;
+      const ext = file.name.split(".").pop() || "jpg";
+      const ts = Date.now();
+      const path = `${user.id}/${ts}.${ext}`;
+      const { error } = await supabase.storage
+        .from("receipts")
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (error) {
+        console.warn("upload receipt failed", error);
+        return null;
+      }
+      return path;
+    } catch (e) {
+      console.warn("upload receipt error", e);
+      return null;
+    }
+  }
+
   // ---- 儲存（新增 or 編輯）----
   async function handleSave() {
     if (!form) return;
     setSaving(true);
     setError(null);
     setInfo(null);
+
+    // 新增模式：先 upload 單據圖（如有）
+    let imagePath: string | null = null;
+    if (!editId && pendingFile) {
+      imagePath = await uploadReceipt(pendingFile);
+    }
 
     const res = editId
       ? await updateInvoice({
@@ -168,6 +203,7 @@ export default function InvoicesClient({
           receipt_number: form.receipt_number || null,
           items: form.items.filter((i) => i.name.trim()),
           notes: form.notes || null,
+          imagePath,
           autoPost: form.autoPost,
           paymentAccount: form.autoPost ? form.paymentAccount : null,
         });
@@ -181,6 +217,7 @@ export default function InvoicesClient({
     setForm(null);
     setEditId(null);
     setPreviewUrl(null);
+    setPendingFile(null);
     if (fileRef.current) fileRef.current.value = "";
     window.location.reload();
   }
@@ -198,6 +235,19 @@ export default function InvoicesClient({
   async function handleToggle(inv: Invoice) {
     await toggleReimbursed(inv.id, inv.reimbursed);
     window.location.reload();
+  }
+
+  // 開單據原圖（signed URL，60 秒有效）
+  async function handleViewImage(path: string) {
+    const supabase = createClient();
+    const { data, error } = await supabase.storage
+      .from("receipts")
+      .createSignedUrl(path, 60);
+    if (error || !data) {
+      alert("無法開啟圖片：" + (error?.message ?? "未知錯誤"));
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
   }
 
   return (
@@ -478,6 +528,15 @@ export default function InvoicesClient({
                       )}
                     </td>
                     <td className="py-2 text-right whitespace-nowrap">
+                      {inv.image_path && (
+                        <button
+                          onClick={() => handleViewImage(inv.image_path!)}
+                          className="text-slate-500 hover:text-doraemon-600 text-xs mr-3"
+                          title="查看單據圖片"
+                        >
+                          📎 圖片
+                        </button>
+                      )}
                       <button
                         onClick={() => startEdit(inv)}
                         className="text-doraemon-600 hover:text-doraemon-700 text-xs mr-3"

@@ -121,6 +121,63 @@ export function fmtMoney(n: number, currency = "HKD"): string {
 }
 
 // ============================================================
+// 近 N 月支出走勢（by month）
+// ============================================================
+interface DatedLine {
+  account_code: string;
+  debit: number;
+  credit: number;
+  entry_date: string;
+  account_type: string;
+}
+
+export function monthlyExpenseTrend(
+  lines: DatedLine[],
+  months = 6,
+): { month: string; amount: number }[] {
+  // 建近 N 月空格
+  const now = new Date();
+  const buckets: { month: string; amount: number }[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    buckets.push({
+      month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      amount: 0,
+    });
+  }
+  const idx = new Map(buckets.map((b, i) => [b.month, i]));
+  for (const l of lines) {
+    if (l.account_type !== "expense") continue;
+    const m = (l.entry_date || "").slice(0, 7);
+    const i = idx.get(m);
+    if (i === undefined) continue;
+    buckets[i].amount += (l.debit || 0) - (l.credit || 0);
+  }
+  return buckets;
+}
+
+// 某月支出分類（畀 pie 用）
+export function expenseByCategory(
+  accounts: { code: string; name: string; account_type: string }[],
+  lines: DatedLine[],
+  start: string,
+  end: string,
+): { name: string; value: number }[] {
+  const nameByCode = new Map(accounts.map((a) => [a.code, a.name]));
+  const sums = new Map<string, number>();
+  for (const l of lines) {
+    if (l.account_type !== "expense") continue;
+    if (l.entry_date < start || l.entry_date > end) continue;
+    const amt = (l.debit || 0) - (l.credit || 0);
+    sums.set(l.account_code, (sums.get(l.account_code) || 0) + amt);
+  }
+  return Array.from(sums.entries())
+    .filter(([, v]) => v > 0.005)
+    .map(([code, v]) => ({ name: nameByCode.get(code) ?? code, value: v }))
+    .sort((a, b) => b.value - a.value);
+}
+
+// ============================================================
 // 貸款 EMI 試算（等額本息）
 // ============================================================
 // M = P × r × (1+r)^n / ((1+r)^n − 1)

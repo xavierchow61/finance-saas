@@ -31,6 +31,7 @@ export async function saveInvoice(input: {
   receipt_number: string | null;
   items: InvoiceItem[];
   notes: string | null;
+  imagePath?: string | null; // Supabase Storage path
   // 入賬選項
   autoPost: boolean;
   paymentAccount: string | null; // 貸方帳戶（付款來源）
@@ -62,6 +63,7 @@ export async function saveInvoice(input: {
       tax: input.tax,
       receipt_number: input.receipt_number,
       notes: input.notes,
+      image_path: input.imagePath ?? null,
       extracted_at: new Date().toISOString(),
     })
     .select("id")

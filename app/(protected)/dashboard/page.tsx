@@ -1,15 +1,29 @@
 import { createClient } from "@/lib/supabase/server";
-import { calcAccountBalances, fmtMoney } from "@/lib/finance";
+import {
+  calcAccountBalances,
+  fmtMoney,
+  monthlyExpenseTrend,
+  expenseByCategory,
+  monthRange,
+  currentPeriod,
+} from "@/lib/finance";
+import { ExpensePie, ExpenseTrend } from "./DashboardCharts";
 import Link from "next/link";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  // 並行 fetch accounts + lines
-  const [{ data: accounts }, { data: lines }] = await Promise.all([
-    supabase.from("accounts").select("*").eq("is_active", true),
-    supabase.from("journal_lines").select("account_code, debit, credit"),
-  ]);
+  // 並行 fetch accounts + lines（餘額用）+ dated lines（圖表用）
+  const [{ data: accounts }, { data: lines }, { data: datedLines }] =
+    await Promise.all([
+      supabase.from("accounts").select("*").eq("is_active", true),
+      supabase.from("journal_lines").select("account_code, debit, credit"),
+      supabase
+        .from("journal_lines")
+        .select(
+          "account_code, debit, credit, journal_entries!inner(entry_date)",
+        ),
+    ]);
 
   const withBal = calcAccountBalances(accounts ?? [], lines ?? []);
   const totalAssets = withBal
@@ -21,6 +35,42 @@ export default async function DashboardPage() {
   const netWorth = totalAssets - totalLiab;
 
   const hasData = (accounts?.length ?? 0) > 0;
+
+  // === 圖表資料 ===
+  const accTypeByCode = new Map(
+    (accounts ?? []).map((a) => [a.code, a.account_type]),
+  );
+  const flatDated = (datedLines ?? []).map(
+    (l: {
+      account_code: string;
+      debit: number;
+      credit: number;
+      journal_entries: { entry_date: string } | { entry_date: string }[];
+    }) => {
+      const je = Array.isArray(l.journal_entries)
+        ? l.journal_entries[0]
+        : l.journal_entries;
+      return {
+        account_code: l.account_code,
+        debit: l.debit,
+        credit: l.credit,
+        entry_date: je?.entry_date ?? "",
+        account_type: accTypeByCode.get(l.account_code) ?? "",
+      };
+    },
+  );
+  const { start, end } = monthRange(currentPeriod());
+  const pieData = expenseByCategory(
+    (accounts ?? []).map((a) => ({
+      code: a.code,
+      name: a.name,
+      account_type: a.account_type,
+    })),
+    flatDated,
+    start,
+    end,
+  );
+  const trendData = monthlyExpenseTrend(flatDated, 6);
 
   return (
     <div className="p-6 md:p-10">
@@ -52,6 +102,22 @@ export default async function DashboardPage() {
             <KpiCard label="💰 總資產" value={fmtMoney(totalAssets)} color="text-green-600" />
             <KpiCard label="💳 總負債" value={fmtMoney(totalLiab)} color="text-red-600" />
             <KpiCard label="📊 淨資產" value={fmtMoney(netWorth)} color="text-doraemon-700" />
+          </div>
+
+          {/* 圖表 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            <div className="bg-white/95 backdrop-blur rounded-2xl shadow-lg p-6">
+              <h3 className="text-sm font-semibold text-slate-600 mb-2">
+                🥧 本月支出分類
+              </h3>
+              <ExpensePie data={pieData} />
+            </div>
+            <div className="bg-white/95 backdrop-blur rounded-2xl shadow-lg p-6">
+              <h3 className="text-sm font-semibold text-slate-600 mb-2">
+                📊 近 6 個月支出走勢
+              </h3>
+              <ExpenseTrend data={trendData} />
+            </div>
           </div>
 
           {/* Quick links */}
