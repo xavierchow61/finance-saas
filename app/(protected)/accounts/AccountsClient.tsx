@@ -14,6 +14,15 @@ import { upsertAccount, deleteAccount, seedDefaultAccounts } from "./actions";
 
 type DialogMode = "new" | "edit" | null;
 
+// 常用 emoji 快選（按一下即填入圖示）
+const EMOJI_CHOICES = [
+  "🏦", "🏧", "💰", "💵", "💳", "🪙", "💸", "🧾",
+  "📈", "📉", "📊", "💼", "🐷", "💎", "🤝", "📅",
+  "🏠", "🏢", "🚗", "✈️", "🚇", "⛽", "🛒", "🛍️",
+  "🍔", "🍜", "☕", "🏥", "💊", "🎓", "🎮", "🎁",
+  "📱", "💻", "👕", "⚡", "💡", "🔧", "❤️", "🐶",
+];
+
 export default function AccountsClient({
   initialAccounts,
 }: {
@@ -265,7 +274,9 @@ function AccountDialog({
   );
   const [subType, setSubType] = useState(editing?.sub_type ?? "");
   const [parentCode, setParentCode] = useState(editing?.parent_code ?? "");
-  const [opening, setOpening] = useState(editing?.opening_balance ?? 0);
+  const [opening, setOpening] = useState(
+    editing && editing.opening_balance ? String(editing.opening_balance) : "",
+  );
   const [currency, setCurrency] = useState(editing?.currency ?? "HKD");
   const [icon, setIcon] = useState(editing?.icon ?? "");
   const [sortOrder, setSortOrder] = useState(editing?.sort_order ?? 0);
@@ -295,7 +306,7 @@ function AccountDialog({
         account_type: accountType,
         sub_type: subType || null,
         parent_code: hasChildren ? null : parentCode || null,
-        opening_balance: opening,
+        opening_balance: parseFloat(opening) || 0,
         currency,
         icon: icon || null,
         sort_order: sortOrder,
@@ -358,6 +369,34 @@ function AccountDialog({
                 className="input"
               />
             </Field>
+          </div>
+
+          {/* emoji 快選 */}
+          <div className="flex flex-wrap gap-1.5">
+            {EMOJI_CHOICES.map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => setIcon(e)}
+                className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition hover:bg-doraemon-100 ${
+                  icon === e
+                    ? "bg-doraemon-100 ring-2 ring-doraemon-400"
+                    : "bg-slate-50"
+                }`}
+              >
+                {e}
+              </button>
+            ))}
+            {icon && (
+              <button
+                type="button"
+                onClick={() => setIcon("")}
+                title="清除圖示"
+                className="w-9 h-9 rounded-lg text-sm flex items-center justify-center bg-slate-50 hover:bg-red-50 text-slate-400 transition"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           <Field label="顯示名稱">
@@ -451,7 +490,8 @@ function AccountDialog({
                 type="number"
                 step="0.01"
                 value={opening}
-                onChange={(e) => setOpening(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setOpening(e.target.value)}
+                placeholder="0.00"
                 className="input"
               />
             </Field>
